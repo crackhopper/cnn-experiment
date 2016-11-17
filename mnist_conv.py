@@ -1,17 +1,16 @@
 from __future__ import print_function
 from __future__ import absolute_import
 from __future__ import division
-
 from six.moves import xrange
 
 import os
 import shutil
 from six.moves import urllib
 import sys
-
 from tensorflow.contrib import layers
 import numpy as np
 import tensorflow as tf
+import gzip
 
 ####### download data ############
 
@@ -20,8 +19,8 @@ TRAIN_IMAGES = 'train-images-idx3-ubyte.gz'
 TRAIN_LABELS = 'train-labels-idx1-ubyte.gz'
 TEST_IMAGES = 't10k-images-idx3-ubyte.gz'
 TEST_LABELS = 't10k-labels-idx1-ubyte.gz'
-
 datadir = os.path.abspath('./Data')
+
 if not os.path.exists(datadir):
     os.mkdir(datadir)
     
@@ -53,17 +52,7 @@ if not os.path.exists(os.path.join(datadir,TRAIN_IMAGES)):
     urllib.request.urlretrieve(surl, os.path.join(datadir,fname),processbar(fname))
 
 ####### unzip data ############
-import gzip
-import os
-import numpy as np
-import tensorflow as tf
 
-TRAIN_IMAGES = 'train-images-idx3-ubyte.gz'
-TRAIN_LABELS = 'train-labels-idx1-ubyte.gz'
-TEST_IMAGES = 't10k-images-idx3-ubyte.gz'
-TEST_LABELS = 't10k-labels-idx1-ubyte.gz'
-
-datadir = os.path.abspath('./Data')
 with gzip.GzipFile(datadir+'/'+TRAIN_IMAGES) as f:
     buf = f.read()   
 train_magic1,nimg,nrow, ncol= np.frombuffer(buf,np.dtype('>i4'),4)
@@ -73,10 +62,8 @@ with gzip.GzipFile(datadir+'/'+TRAIN_LABELS) as f:
     buf = f.read()   
 train_magic2,nlbl = np.frombuffer(buf,np.dtype('>i4'),2)
 train_label = np.frombuffer(buf,np.dtype('u1'),offset=8)
-
 assert(train_magic1==2051)
 assert(train_magic2==2049)
-
 images = [] # use python list, avoid reallocation when append elements
 for i in range(nimg):
     img = train_image[i*nrow*ncol:(i+1)*nrow*ncol].reshape(nrow,ncol)
@@ -87,7 +74,6 @@ images = np.array(images) # change to np.array
 data = images.reshape([-1,28,28,1])/255.0
 label = train_label.reshape([-1,1])
 datatype = tf.float32
-
 print('data loaded')
 
 #####  Helper class #######
@@ -209,7 +195,6 @@ def conv_net(feat):
     fc1,w1,b1 = fc(flattened,1024,name='fc1',act=tf.nn.relu)
     logit,w2,b2 = fc(fc1,10,name='fc1',act=None)
 
-#    logits,w,b = fc(flatten(feat),10,name='fc')
     return logit,w1,b1
     
     
@@ -222,7 +207,6 @@ onehot_tgt = one_hot(target,10)
 
 accuracy = logit_accuracy(logits,onehot_tgt)
 loss = cross_entropy_loss(logits,onehot_tgt)
-#optimizer = tf.train.GradientDescentOptimizer(0.5).minimize(loss)
 
 optimizer = layers.optimize_loss(loss,tf.contrib.framework.get_global_step(),
                                optimizer='SGD',learning_rate=0.01)
@@ -232,7 +216,8 @@ optimizer = layers.optimize_loss(loss,tf.contrib.framework.get_global_step(),
 #learning_rate = tf.train.exponential_decay(0.01,step*batchsize,N,0.95,staircase=True)
 #optimizer = tf.train.MomentumOptimizer(learning_rate,0.9).minimize(loss,global_step=step)
 
-testdict = {feat: mnist.test.x, target: mnist.test.y}
+testdict = {feat: mnist.test.x[0:1000,:], target: mnist.test.y[0:1000,:]}
+
 init = tf.initialize_all_variables()
 with tf.Session() as sess:
     sess.run(init)
