@@ -1,0 +1,7 @@
+Data/
+event*
+*.txt
+*~
+*.pyc
+.ipynb_checkpoints/
+*.ipynb

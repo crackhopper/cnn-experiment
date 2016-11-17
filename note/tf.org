@@ -1,0 +1,396 @@
+
+* collections
+High-performance container datatypes
+** namedtuple()
+Factory Function for Tuples with Named Fields
+
+#+BEGIN_SRC python
+>>> Point = namedtuple('Point', ['x', 'y'], verbose=True)
+class Point(tuple):
+    'Point(x, y)'
+
+    __slots__ = ()
+
+    _fields = ('x', 'y')
+
+    def __new__(_cls, x, y):
+        'Create new instance of Point(x, y)'
+        return _tuple.__new__(_cls, (x, y))
+
+    @classmethod
+    def _make(cls, iterable, new=tuple.__new__, len=len):
+        'Make a new Point object from a sequence or iterable'
+        result = new(cls, iterable)
+        if len(result) != 2:
+            raise TypeError('Expected 2 arguments, got %d' % len(result))
+        return result
+
+    def __repr__(self):
+        'Return a nicely formatted representation string'
+        return 'Point(x=%r, y=%r)' % self
+
+    def _asdict(self):
+        'Return a new OrderedDict which maps field names to their values'
+        return OrderedDict(zip(self._fields, self))
+
+    def _replace(_self, **kwds):
+        'Return a new Point object replacing specified fields with new values'
+        result = _self._make(map(kwds.pop, ('x', 'y'), _self))
+        if kwds:
+            raise ValueError('Got unexpected field names: %r' % kwds.keys())
+        return result
+
+    def __getnewargs__(self):
+        'Return self as a plain tuple.  Used by copy and pickle.'
+        return tuple(self)
+
+    __dict__ = _property(_asdict)
+
+    def __getstate__(self):
+        'Exclude the OrderedDict from pickling'
+        pass
+
+    x = _property(_itemgetter(0), doc='Alias for field number 0')
+
+    y = _property(_itemgetter(1), doc='Alias for field number 1')
+
+
+
+>>> p = Point(11, y=22)     # instantiate with positional or keyword arguments
+>>> p[0] + p[1]             # indexable like the plain tuple (11, 22)
+33
+>>> x, y = p                # unpack like a regular tuple
+>>> x, y
+(11, 22)
+>>> p.x + p.y               # fields also accessible by name
+33
+>>> p                       # readable __repr__ with a name=value style
+Point(x=11, y=22)
+#+END_SRC
+
+* numpy
+** numpy.array concate
+Appending data to an existing array is a natural thing to want to do
+for anyone with python experience.
+
+However, if you find yourself regularly appending to large arrays,
+you'll quickly discover that NumPy doesn't easily or efficiently do
+this the way a python list will.  You'll find that every "append"
+action requires re-allocation of the array memory and short-term
+doubling of memory requirements.
+
+So, the more general solution to the problem is to try to allocate
+arrays to be as large as the final output of your algorithm. Then
+perform all your operations on sub-sets (slices) of that array. Array
+creation and destruction should ideally be minimized.
+
+That said, It's often unavoidable and the functions that do this are:
+
+for 2-D arrays:
+
+- np.hstack
+- np.vstack
+- np.column_stack
+- np.row_stack
+  
+for 3-D arrays (the above plus):
+
+- np.dstack
+
+for N-D arrays:
+
+- np.concatenate
+** numpy.random.choice
+- numpy.random.choice(a, size=None, replace=True, p=None)
+
+NOTE: the replace is true!! it is put-back sampling.
+* python
+** property
+#+BEGIN_SRC python
+class Student(object):
+
+    @property
+    def score(self):
+        return self._score
+
+    @score.setter
+    def score(self, value):
+        if not isinstance(value, int):
+            raise ValueError('score must be an integer!')
+        if value < 0 or value > 100:
+            raise ValueError('score must between 0 ~ 100!')
+        self._score = value
+#+END_SRC
+* tensorflow
+** Tensor Transformations
+*** tf.cast
+- tf.cast(x, dtype, name=None)
+#+BEGIN_SRC python
+# tensor `a` is [1.8, 2.2], dtype=tf.float
+tf.cast(a, tf.int32) ==> [1, 2]  # dtype=tf.int32
+#+END_SRC
+*** tf.one_hot
+- tf.one_hot(indices, depth, on_value=None, off_value=None, axis=None,
+  dtype=None, name=None)
+
+  - indices :: locations in one-hot representation.  if rank-N tensor,
+               output would be rank-N+1
+  - depth :: number of categories
+
+If indices is a vector of length features, the output shape will be:
+features x depth if axis == -1 depth x features if axis == 0
+
+If indices is a matrix (batch) with shape [batch, features], the
+output shape will be: batch x features x depth if axis == -1 batch x
+depth x features if axis == 1 depth x batch x features if axis == 0
+** Name
+*** scope name
+http://stackoverflow.com/questions/34592172/about-names-of-variable-scope-in-tensorflow
+
+
+3 down vote accepted The "_2" in "BasicLSTMCell_2" relates to the name
+scope in which the op outpts[2] was created. Every time you create a
+new name scope (with tf.name_scope()) or variable scope (with
+tf.variable_scope()) a unique suffix is added to the current name
+scope, based on the given string, possibly with an additional suffix
+to make it unique.
+*** tf.get_variable, tf.Variable
+- tf.get_variable :: either create one or get an existing one, should
+     specify reuse in the scope.
+- tf.Variable :: always create an new variable.  
+
+Indeed -- variables created in other ways than with
+tf.get_variable(...), esp. by the lower-level tf.Variable, are not
+added or recognized by variable_scope. This is partly intentional (as
+some special variables may need to be treated specially) and partly a
+result of how the variable sharing process developed.
+
+https://github.com/tensorflow/tensorflow/issues/1325
+** Graph
+*** overview
+A TensorFlow computation, represented as a dataflow graph.
+
+A Graph contains a set of Operation objects, which represent units of
+computation; and Tensor objects, which represent the units of data
+that flow between operations.
+
+A default Graph is always registered, and accessible by calling
+tf.get_default_graph().
+
+To add an operation to the default graph, simply call one of the
+functions that defines a new Operation:
+
+#+BEGIN_SRC python
+c = tf.constant(4.0)
+assert c.graph is tf.get_default_graph()
+#+END_SRC
+
+Another typical usage involves the Graph.as_default() context manager,
+which overrides the current default graph for the lifetime of the
+context:
+#+BEGIN_SRC python
+g = tf.Graph()
+with g.as_default():
+  # Define operations and tensors in `g`.
+  c = tf.constant(30.0)
+  assert c.graph is g
+#+END_SRC
+
+Important note: This class is not thread-safe for graph
+construction. All operations should be created from a single thread,
+or external synchronization must be provided. Unless otherwise
+specified, all methods are not thread-safe.
+*** tf.Graph.as_default()
+Returns a context manager that makes this Graph the default graph.
+#+BEGIN_SRC python
+# 1. Using Graph.as_default():
+g = tf.Graph()
+with g.as_default():
+  c = tf.constant(5.0)
+  assert c.graph is g
+
+# 2. Constructing and making default:
+with tf.Graph().as_default() as g:
+  c = tf.constant(5.0)
+  assert c.graph is g
+#+END_SRC
+*** tf.Graph.finalize()
+Finalizes this graph, making it read-only.
+
+After calling g.finalize(), no new operations can be added to g. This
+method is used to ensure that no operations are added to a graph when
+it is shared between multiple threads, for example when using a
+QueueRunner.
+*** tf.get_default_graph()
+*** tf.reset_default_graph()
+*** delve
+[n.name for n in tf.get_default_graph().as_graph_def().node]
+
+http://nbviewer.jupyter.org/github/tensorflow/tensorflow/blob/master/tensorflow/examples/tutorials/deepdream/deepdream.ipynb
+
+** InteractiveSession
+The only difference with a regular Session is that an
+InteractiveSession installs itself as the default session on
+construction. The methods Tensor.eval() and Operation.run() will use
+that session to run ops.
+
+#+BEGIN_SRC python
+sess = tf.InteractiveSession()
+a = tf.constant(5.0)
+b = tf.constant(6.0)
+c = a * b
+# We can just use 'c.eval()' without passing 'sess'
+print(c.eval())
+sess.close()
+#+END_SRC
+** Sharing Variables
+*** Usage
+#+BEGIN_SRC python
+def conv_relu(input, kernel_shape, bias_shape):
+    # Create variable named "weights".
+    weights = tf.get_variable("weights", kernel_shape,
+        initializer=tf.random_normal_initializer())
+    # Create variable named "biases".
+    biases = tf.get_variable("biases", bias_shape,
+        initializer=tf.constant_initializer(0.0))
+    conv = tf.nn.conv2d(input, weights,
+        strides=[1, 1, 1, 1], padding='SAME')
+    return tf.nn.relu(conv + biases)
+
+def my_image_filter(input_images):
+    with tf.variable_scope("conv1"):
+        # Variables created here will be named "conv1/weights", "conv1/biases".
+        relu1 = conv_relu(input_images, [5, 5, 32, 32], [32])
+    with tf.variable_scope("conv2"):
+        # Variables created here will be named "conv2/weights", "conv2/biases".
+        return conv_relu(relu1, [5, 5, 32, 32], [32])
+#+END_SRC
+
+tf.get_variable() checks that already existing variables are not
+shared by accident. If you want to share them, you need to specify it
+by setting reuse_variables() as follows.
+#+BEGIN_SRC python
+with tf.variable_scope("image_filters") as scope:
+    result1 = my_image_filter(image1)
+    scope.reuse_variables()
+    result2 = my_image_filter(image2)
+#+END_SRC
+*** How Does Variable Scope Work?
+#+BEGIN_SRC python
+v = tf.get_variable(name, shape, dtype, initializer)
+#+END_SRC
+
+This call does one of two things depending on the scope it is called
+in. Here are the two options.
+
+1. the scope is set for creating new variables, as evidenced by
+   tf.get_variable_scope().reuse == False.
+   
+   In this case, v will be a newly created tf.Variable with the
+   provided shape and data type. The full name of the created variable
+   will be set to the current variable scope name + the provided name
+   and a check will be performed to ensure that no variable with this
+   full name exists yet. If a variable with this full name already
+   exists, the function will raise a ValueError. If a new variable is
+   created, it will be initialized to the value
+   initializer(shape). For example:
+   #+BEGIN_SRC python
+     with tf.variable_scope("foo"):
+         v = tf.get_variable("v", [1])
+     assert v.name == "foo/v:0"
+   #+END_SRC
+
+2. the scope is set for reusing variables, as evidenced by
+   tf.get_variable_scope().reuse == True.
+   
+   In this case, the call will search for an already existing variable
+   with name equal to the current variable scope name + the provided
+   name. If no such variable exists, a ValueError will be raised. If
+   the variable is found, it will be returned. For example:
+   #+BEGIN_SRC python
+     with tf.variable_scope("foo"):
+         v = tf.get_variable("v", [1])
+     with tf.variable_scope("foo", reuse=True):
+         v1 = tf.get_variable("v", [1])
+     assert v1 == v   
+   #+END_SRC
+*** Capturing variable scope
+In all examples presented above, we shared parameters only because
+their names agreed, that is, because we opened a reusing variable
+scope with exactly the same string. In more complex cases, it might be
+useful to pass a VariableScope object rather than rely on getting the
+names right. To this end, variable scopes can be captured and used
+instead of names when opening a new variable scope.
+#+BEGIN_SRC python
+with tf.variable_scope("foo") as foo_scope:
+    v = tf.get_variable("v", [1])
+with tf.variable_scope(foo_scope)
+    w = tf.get_variable("w", [1])
+with tf.variable_scope(foo_scope, reuse=True)
+    v1 = tf.get_variable("v", [1])
+    w1 = tf.get_variable("w", [1])
+assert v1 == v
+assert w1 == w
+#+END_SRC
+
+When opening a variable scope using a previously existing scope we
+jump out of the current variable scope prefix to an entirely different
+one. This is fully independent of where we do it.
+
+#+BEGIN_SRC python
+with tf.variable_scope("foo") as foo_scope:
+    assert foo_scope.name == "foo"
+with tf.variable_scope("bar")
+    with tf.variable_scope("baz") as other_scope:
+        assert other_scope.name == "bar/baz"
+        with tf.variable_scope(foo_scope) as foo_scope2:
+            assert foo_scope2.name == "foo"  # Not changed.
+#+END_SRC
+*** Initializers in variable scope
+#+BEGIN_SRC python
+with tf.variable_scope("foo", initializer=tf.constant_initializer(0.4)):
+    v = tf.get_variable("v", [1])
+    assert v.eval() == 0.4  # Default initializer as set above.
+    w = tf.get_variable("w", [1], initializer=tf.constant_initializer(0.3)):
+    assert w.eval() == 0.3  # Specific initializer overrides the default.
+    with tf.variable_scope("bar"):
+        v = tf.get_variable("v", [1])
+        assert v.eval() == 0.4  # Inherited default initializer.
+    with tf.variable_scope("baz", initializer=tf.constant_initializer(0.2)):
+        v = tf.get_variable("v", [1])
+        assert v.eval() == 0.2  # Changed default initializer.
+#+END_SRC
+*** Names of ops in tf.variable_scope()
+#+BEGIN_SRC python
+with tf.variable_scope("foo"):
+    with tf.name_scope("bar"):
+        v = tf.get_variable("v", [1])
+        x = 1.0 + v
+assert v.name == "foo/v:0"
+assert x.op.name == "foo/bar/add"
+#+END_SRC
+*** name_scope, variable_scope
+http://stackoverflow.com/questions/35919020/whats-the-difference-of-name-scope-and-a-variable-scope-in-tensorflow
+
+As a result, we end up having two different types of scopes:
+
+- name scope, created using tf.name_scope or tf.op_scope
+- variable scope, created using tf.variable_scope or tf.variable_op_scope
+
+name scope is ignored by tf.get_variable. We can see that in the
+following example:
+#+BEGIN_SRC python
+with tf.name_scope("my_scope"):
+    v1 = tf.get_variable("var1", [1], dtype=tf.float32)
+    v2 = tf.Variable(1, name="var2", dtype=tf.float32)
+    a = tf.add(v1, v2)
+
+print(v1.name)  # var1:0
+print(v2.name)  # my_scope/var2:0
+print(a.name)   # my_scope/Add:0
+#+END_SRC
+
+* Caution
+** error! :: sess.run(w.eval())
+cannot run the result of eval() !!!
+
