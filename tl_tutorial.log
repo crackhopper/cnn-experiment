@@ -1,0 +1,39 @@
+  tensorlayer:Instantiate InputLayer  input_layer: (?, 784)
+  tensorlayer:Instantiate DropoutLayer drop1: keep: 0.800000
+  tensorlayer:Instantiate DenseLayer  relu1: 800, relu
+  tensorlayer:Instantiate DropoutLayer drop2: keep: 0.500000
+  tensorlayer:Instantiate DenseLayer  relu2: 800, relu
+  tensorlayer:Instantiate DropoutLayer drop3: keep: 0.500000
+  tensorlayer:Instantiate DenseLayer  output_layer: 10, identity
+  param   0: (784, 800)      (mean: 4.5437260269e-05  , median: 5.46111477888e-05 , std: 0.0878483429551   )   relu1/W:0
+  param   1: (800,)          (mean: 0.0               , median: 0.0               , std: 0.0               )   relu1/b:0
+  param   2: (800, 800)      (mean: -2.475493784e-05  , median: -1.40046777233e-05, std: 0.0879768133163   )   relu2/W:0
+  param   3: (800,)          (mean: 0.0               , median: 0.0               , std: 0.0               )   relu2/b:0
+  param   4: (800, 10)       (mean: -0.000461669143988, median: -0.0018936637789  , std: 0.0874664410949   )   output_layer/W:0
+  param   5: (10,)           (mean: 0.0               , median: 0.0               , std: 0.0               )   output_layer/b:0
+  num of params: 1276810
+  layer 0: Tensor("drop1/mul_1:0", shape=(?, 784), dtype=float32)
+  layer 1: Tensor("relu1/Relu:0", shape=(?, 800), dtype=float32)
+  layer 2: Tensor("drop2/mul_1:0", shape=(?, 800), dtype=float32)
+  layer 3: Tensor("relu2/Relu:0", shape=(?, 800), dtype=float32)
+  layer 4: Tensor("drop3/mul_1:0", shape=(?, 800), dtype=float32)
+  layer 5: Tensor("output_layer/Identity:0", shape=(?, 10), dtype=float32)
+Start training the network ...
+Epoch 1 of 500 took 2.473405s
+   val loss: 0.561699
+   val acc: 0.824900
+Epoch 5 of 500 took 2.396921s
+   val loss: 0.284861
+   val acc: 0.914900
+Epoch 10 of 500 took 2.393254s
+   val loss: 0.220811
+   val acc: 0.936700
+Epoch 15 of 500 took 2.400977s
+   val loss: 0.185742
+   val acc: 0.947900
+Epoch 20 of 500 took 2.399601s
+   val loss: 0.161464
+   val acc: 0.956200
+Epoch 25 of 500 took 2.402309s
+   val loss: 0.144513
+   val acc: 0.962200

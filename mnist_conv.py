@@ -159,7 +159,6 @@ def logit_accuracy(logit,one_hot):
     with tf.variable_scope('accuracy'):
         correct_prediction = tf.equal(tf.argmax(logit, 1), tf.argmax(one_hot,1))
         accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
-        
     return accuracy
 
 def conv(in_tensor,in_channel,out_channel,name='conv',datatype = tf.float32):
