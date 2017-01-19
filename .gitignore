@@ -5,3 +5,4 @@ event*
 *.pyc
 .ipynb_checkpoints/
 note/
+*.gz
