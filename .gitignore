@@ -1,7 +1,7 @@
-Data/
+MNIST_data/
 event*
 *.txt
 *~
 *.pyc
 .ipynb_checkpoints/
-*.ipynb
+note/
