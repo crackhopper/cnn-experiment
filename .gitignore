@@ -6,3 +6,5 @@ event*
 .ipynb_checkpoints/
 note/
 *.gz
+*.pkl
+mnist_lenet/
